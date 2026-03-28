@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detailed Network Test</title>
+    <style>
+        body { font-family: monospace; background: #222; color: #0f0; padding: 10px; }
+        #log { border: 1px solid #0f0; padding: 10px; height: 400px; overflow-y: auto; margin-bottom: 10px; }
+        button { background: #0f0; color: #000; padding: 10px; margin: 5px; cursor: pointer; }
+        .info { color: #0ff; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>Detailed Network Test</h1>
+    <button onclick="startTest()">START TEST</button>
+    <button onclick="clearLog()">CLEAR LOG</button>
+    <div id="log"></div>
+    
+    <script src="network.js"></script>
+    <script>
+        const logElement = document.getElementById('log');
+        
+        function addLog(msg, type = 'info') {
+            const p = document.createElement('p');
+            const time = new Date().toLocaleTimeString();
+            p.textContent = `[${time}] ${msg}`;
+            p.className = type;
+            logElement.appendChild(p);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        // Глобальные переменные (как в game.js)
+        let isMultiplayer = false;
+        let currentGameMode = 'single';
+        let playerId = null;
+        let multiplayerPlayers = [];
+        let isGamePaused = true;
+
+        async function startTest() {
+            try {
+                addLog('=== НАЧАЛО ТЕСТА ===', 'info');
+                
+                addLog('Проверяем networkManager...', 'info');
+                if (!window.networkManager) {
+                    addLog('✗ networkManager не определен!', 'error');
+                    return;
+                }
+                addLog('✓ networkManager найден', 'success');
+
+                addLog('Подключаемся к серверу...', 'info');
+                await networkManager.connect('TestDebugPlayer');
+                addLog('✓ Подключено к серверу', 'success');
+                addLog('  playerId: ' + networkManager.playerId, 'info');
+
+                // Регистрируем обработчик GAME_STATE
+                addLog('Регистрируем обработчик GAME_STATE...', 'info');
+                
+                const handleGameState = (data) => {
+                    addLog('>>> handleGameState вызван!', 'success');
+                    addLog('  data: ' + JSON.stringify(data).substring(0, 100) + '...', 'info');
+                    
+                    if (data.gameId) {
+                        addLog('  ✓ gameId найден: ' + data.gameId, 'success');
+                        
+                        // Устанавливаем переменные как в game.js
+                        isMultiplayer = true;
+                        currentGameMode = 'coop';
+                        playerId = networkManager.playerId;
+                        multiplayerPlayers = data.state.players || [];
+                        
+                        addLog('  ✓ Переменные установлены:', 'success');
+                        addLog('    isMultiplayer: ' + isMultiplayer, 'info');
+                        addLog('    currentGameMode: ' + currentGameMode, 'info');
+                        addLog('    playerId: ' + playerId, 'info');
+                        addLog('    multiplayerPlayers.length: ' + multiplayerPlayers.length, 'info');
+                        addLog('    isGamePaused ДО showMainMenu: ' + isGamePaused, 'info');
+                        
+                        // Имитируем showMainMenu(false)
+                        isGamePaused = false;
+                        addLog('    isGamePaused ПОСЛЕ showMainMenu(false): ' + isGamePaused, 'info');
+                        
+                        // Имитируем initGame()
+                        addLog('  ✓ Имитируем initGame()...', 'success');
+                        addLog('    Создали player объект в памяти', 'info');
+                        
+                        addLog('>>> ТЕСТ УСПЕШНО ЗАВЕРШЕН! <<<', 'success');
+                    } else {
+                        addLog('✗ gameId не найден в data!', 'error');
+                        addLog('  data keys: ' + Object.keys(data).join(', '), 'error');
+                    }
+                };
+                
+                networkManager.on('GAME_STATE', handleGameState);
+                addLog('✓ Обработчик зарегистрирован', 'success');
+
+                // Создаем игру
+                addLog('Создаем игру (режим: coop, макс игроков: 4)...', 'info');
+                networkManager.createGame('coop', 4);
+                
+                // Ждем ответа
+                addLog('Ожидаем ответа сервера...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+            } catch (error) {
+                addLog('✗ ОШИБКА: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        addLog('Страница загружена. Нажми кнопку START TEST для начала отладки.', 'info');
+    </script>
+</body>
+</html>

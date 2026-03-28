@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Neon Top-Down Shooter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Главное меню -->
+    <div id="mainMenu" class="menu-container active">
+        <div class="menu-content">
+            <h1 class="menu-title">NEON SHOOTER</h1>
+            <p class="menu-subtitle">Синтвейв киберпанк</p>
+            
+            <div id="mainMenuView" class="menu-view">
+                <div class="menu-buttons">
+                    <button id="btnPlayLevels" class="menu-btn">ОДИНОЧНАЯ ИГРА</button>
+                    <button id="btnMultiplayer" class="menu-btn">МУЛЬТИПЛЕЕР</button>
+                    <button id="btnSettings" class="menu-btn">НАСТРОЙКИ</button>
+                    <button id="btnLevelEditor" class="menu-btn">КОНСТРУКТОР</button>
+                    <button id="btnQuit" class="menu-btn">ВЫХОД</button>
+                </div>
+            </div>
+
+            <div id="levelSelectView" class="menu-view" style="display: none;">
+                <h2 style="color: #00ffff; margin: 0 0 20px 0; font-size: 24px;">ВЫБЕРИ УРОВЕНЬ</h2>
+                <div id="levelButtons" class="menu-buttons"></div>
+                <button id="btnBackFromLevels" class="menu-btn" style="margin-top: 20px;">НАЗАД</button>
+            </div>
+
+            <div id="multiplayerView" class="menu-view" style="display: none;">
+                <h2 style="color: #00ffff; margin: 0 0 20px 0; font-size: 24px;">МУЛЬТИПЛЕЕР</h2>
+                <div style="color: #88ddff; text-align: left; max-width: 420px; margin: 0 auto 16px auto; font-size: 13px;">
+                    <label for="wsServerUrl" style="display: block; margin-bottom: 6px;">Адрес сервера (WebSocket):</label>
+                    <input id="wsServerUrl" type="text" spellcheck="false" autocomplete="off"
+                        placeholder="ws://localhost:8080"
+                        style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 8px; width: 100%; font-size: 13px; box-sizing: border-box;" />
+                    <p style="margin: 8px 0 0 0; font-size: 11px; color: #888; line-height: 1.35;">
+                        Одиночное приложение: оставьте localhost. Друг в сети Wi‑Fi: <code style="color:#aaa;">ws://IP_хоста:8080</code> (узнать IP: Системные настройки → Сеть).
+                    </p>
+                </div>
+                <div class="menu-buttons">
+                    <button id="btnCreateGame" class="menu-btn">СОЗДАТЬ ИГРУ</button>
+                    <button id="btnJoinGame" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
+                    <button id="btnBackFromMulti" class="menu-btn" style="margin-top: 20px;">НАЗАД</button>
+                </div>
+                <p id="multiplayerStatus" style="color: #00ff00; margin-top: 20px; min-height: 20px;"></p>
+            </div>
+
+            <div id="createGameView" class="menu-view" style="display: none;">
+                <h2 style="color: #00ffff; margin: 0 0 20px 0; font-size: 24px;">СОЗДАТЬ ИГРУ</h2>
+                <div style="color: #00ffff; margin-bottom: 15px;">
+                    <p style="margin: 10px 0;">Режим:</p>
+                    <select id="gameMode" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 8px; width: 100%; margin-bottom: 10px; font-size: 14px;">
+                        <option value="coop">Кооперативная (враги для всех)</option>
+                        <option value="pvp">БОЙ (друг против друга)</option>
+                    </select>
+                    <p style="margin: 10px 0;">Максимум игроков:</p>
+                    <select id="maxPlayers" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 8px; width: 100%; margin-bottom: 15px; font-size: 14px;">
+                        <option value="2">2 игрока</option>
+                        <option value="4" selected>4 игрока</option>
+                    </select>
+                </div>
+                <div class="menu-buttons">
+                    <button id="btnStartCreate" class="menu-btn">СОЗДАТЬ</button>
+                    <button id="btnBackFromCreate" class="menu-btn" style="margin-top: 10px;">НАЗАД</button>
+                </div>
+                <p id="createStatus" style="color: #ff0000; margin-top: 10px; min-height: 20px;"></p>
+            </div>
+
+            <div id="joinGameView" class="menu-view" style="display: none;">
+                <h2 style="color: #00ffff; margin: 0 0 20px 0; font-size: 24px;">ПРИСОЕДИНИТЬСЯ К ИГРЕ</h2>
+                <div style="color: #00ffff; margin-bottom: 15px;">
+                    <p style="margin: 10px 0;">Доступные игры:</p>
+                    <div id="gamesList" style="background: #1a0a2e; border: 1px solid #00ffff; padding: 10px; min-height: 120px; max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
+                        <p style="color: #888;">Загружаю список игр...</p>
+                    </div>
+                    <p style="margin: 10px 0;">Или введите код игры:</p>
+                    <input id="gameCode" type="text" placeholder="game_abc123def456" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 8px; width: 100%; font-size: 14px; margin-bottom: 10px;" />
+                    <p style="margin: 10px 0;">Ваше имя:</p>
+                    <input id="playerName" type="text" placeholder="Player" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 8px; width: 100%; font-size: 14px;" />
+                </div>
+                <div class="menu-buttons">
+                    <button id="btnRefreshGames" class="menu-btn">🔄 ОБНОВИТЬ СПИСОК</button>
+                    <button id="btnDoJoin" class="menu-btn">ПРИСОЕДИНИТЬСЯ</button>
+                    <button id="btnBackFromJoin" class="menu-btn" style="margin-top: 10px;">НАЗАД</button>
+                </div>
+                <p id="joinStatus" style="color: #ff0000; margin-top: 10px; min-height: 20px;"></p>
+            </div>
+            
+            <div class="menu-info">
+                <p>WASD - Движение | SHIFT - Ускорение</p>
+                <p>МЫШЬ - Прицел | ЛКМ - Стрелять</p>
+                <p>E - Смена оружия | R - Перезарядка</p>
+                <p>M - Меню | ESC - Закрыть меню</p>
+            </div>
+        </div>
+        <div class="menu-background"></div>
+    </div>
+
+    <div id="levelEditor" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0c; z-index: 2000;">
+        <div style="position: absolute; top: 10px; left: 10px; color: #00ffff; font-size: 14px; max-width: 350px; background: rgba(0, 10, 20, 0.9); padding: 10px; border: 1px solid #00ffff; border-radius: 5px;">
+            <h3 style="margin: 0 0 10px 0;">КОНСТРУКТОР УРОВНЕЙ</h3>
+            <p style="margin: 5px 0; font-size: 12px;">ЛКМ: Расставить | ПКМ: Удалить | WASD: Камера | Q/E: Зум</p>
+            
+            <p style="margin: 10px 0 5px 0;">Уровень:</p>
+            <select id="editorRoomSelect" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 5px; width: 100%; margin-bottom: 10px;"></select>
+            
+            <p style="margin: 10px 0 5px 0;">Объект: <select id="editorObjectType" style="background: #1a0a2e; color: #00ffff; border: 1px solid #00ffff; padding: 5px; width: 100%;">
+                <option value="wall">Стена</option>
+                <option value="enemy">Враг</option>
+                <option value="crate">Ящик</option>
+                <option value="barrel">Бочка</option>
+            </select></p>
+            
+            <label style="display: flex; align-items: center; margin: 10px 0; cursor: pointer;">
+                <input type="checkbox" id="editorDeleteMode" style="margin-right: 8px; cursor: pointer;"/>
+                <span>Режим удаления (ПКМ удаляет)</span>
+            </label>
+            
+            <button id="btnLoadLevel" style="background: #0099ff; color: #fff; border: 1px solid #00ffff; padding: 8px 12px; cursor: pointer; margin-top: 10px; width: 100%;">ЗАГРУЗИТЬ УРОВЕНЬ</button>
+            <button id="btnSaveLevel" style="background: #00ff00; color: #000; border: 1px solid #00ff00; padding: 8px 12px; cursor: pointer; margin-top: 8px; width: 100%;">СОХРАНИТЬ УРОВЕНЬ</button>
+            <button id="btnExitEditor" style="background: #ff0000; color: #fff; border: 1px solid #ff0000; padding: 8px 12px; cursor: pointer; margin-top: 8px; width: 100%;">ВЫХОД</button>
+        </div>
+        <canvas id="editorCanvas"></canvas>
+    </div>
+    
+    <div id="ui">ОЧКИ: <span id="score">0</span><br>ПАТРОНЫ: <span id="ammo">12</span><br>ОРУЖИЕ: <span id="weapon">Пистолет (E для смены)</span></div>
+    
+    <div id="gameover">
+        <h1>ВЫ МЕРТВЫ</h1>
+        <p>Нажмите [R] для мгновенного рестарта или [M] для меню</p>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Подключаем скрипты в правильном порядке -->
+    <script src="console-logger.js"></script>
+    <script src="debug.js"></script>
+    <script src="audio.js"></script>
+    <script src="physics.js"></script>
+    <script src="render.js"></script>
+    <script src="ai.js"></script>
+    <script src="ui.js"></script>
+    <script src="procedural.js"></script>
+    <script src="levelEditor.js"></script>
+    <script src="network.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

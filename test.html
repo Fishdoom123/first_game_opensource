@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Network</title>
+</head>
+<body>
+    <h1>Network Connection Test</h1>
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        
+        function addLog(msg) {
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            log.appendChild(p);
+            console.log(msg);
+        }
+        
+        class NetworkManager {
+            constructor() {
+                this.ws = null;
+                this.gameId = null;
+                this.playerId = null;
+                this.isConnected = false;
+                this.messageHandlers = new Map();
+                this.serverUrl = 'ws://localhost:8080';
+                
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 2000;
+            }
+
+            static MESSAGE_TYPES = {
+                CONNECT: 'CONNECT',
+                CREATE_GAME: 'CREATE_GAME',
+                JOIN_GAME: 'JOIN_GAME',
+                PLAYER_UPDATE: 'PLAYER_UPDATE',
+                SHOOT: 'SHOOT',
+                CHANGE_WEAPON: 'CHANGE_WEAPON',
+                DISCONNECT: 'DISCONNECT',
+                
+                GAME_STATE: 'GAME_STATE',
+                PLAYER_JOINED: 'PLAYER_JOINED',
+                PLAYER_LEFT: 'PLAYER_LEFT',
+                ENEMY_UPDATE: 'ENEMY_UPDATE',
+                BULLET_FIRED: 'BULLET_FIRED',
+                PLAYER_HIT: 'PLAYER_HIT',
+                GAME_OVER: 'GAME_OVER',
+                ERROR: 'ERROR'
+            };
+
+            connect(playerName = 'TestPlayer') {
+                return new Promise((resolve, reject) => {
+                    try {
+                        addLog(`Подключение к ${this.serverUrl}...`);
+                        this.ws = new WebSocket(this.serverUrl);
+
+                        this.ws.onopen = () => {
+                            addLog('WebSocket открыт!');
+                            
+                            this.send({
+                                type: NetworkManager.MESSAGE_TYPES.CONNECT,
+                                name: playerName
+                            });
+                        };
+
+                        this.ws.onmessage = (event) => {
+                            const data = JSON.parse(event.data);
+                            addLog(`Сообщение тип: ${data.type}`);
+                            
+                            if (data.type === NetworkManager.MESSAGE_TYPES.CONNECT && data.playerId) {
+                                this.playerId = data.playerId;
+                                this.isConnected = true;
+                                this.reconnectAttempts = 0;
+                                addLog(`ID получен: ${this.playerId}`);
+                                resolve();
+                            }
+                            
+                            this.handleMessage(data);
+                        };
+
+                        this.ws.onerror = (error) => {
+                            addLog(`WebSocket ошибка: ${error}`);
+                            reject(error);
+                        };
+
+                        this.ws.onclose = () => {
+                            addLog('WebSocket закрыт');
+                            this.isConnected = false;
+                        };
+                    } catch (error) {
+                        addLog(`Ошибка: ${error}`);
+                        reject(error);
+                    }
+                });
+            }
+
+            handleMessage(data) {
+                const { type, ...payload } = data;
+                
+                if (type === NetworkManager.MESSAGE_TYPES.GAME_STATE) {
+                    this.gameId = data.gameId;
+                    addLog(`GAME_STATE получено. GameId: ${data.gameId}, Игроки: ${data.state.players.length}`);
+                }
+
+                if (this.messageHandlers.has(type)) {
+                    const handlers = this.messageHandlers.get(type);
+                    handlers.forEach(handler => {
+                        try {
+                            handler(payload);
+                        } catch (error) {
+                            addLog(`Ошибка обработчика ${type}: ${error}`);
+                        }
+                    });
+                }
+            }
+
+            on(messageType, handler) {
+                if (!this.messageHandlers.has(messageType)) {
+                    this.messageHandlers.set(messageType, []);
+                }
+                this.messageHandlers.get(messageType).push(handler);
+            }
+
+            send(data) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(data));
+                    addLog(`Отправлено: ${data.type}`);
+                } else {
+                    addLog(`Ошибка: WebSocket не открыт`);
+                }
+            }
+
+            createGame(mode, maxPlayers) {
+                this.send({
+                    type: NetworkManager.MESSAGE_TYPES.CREATE_GAME,
+                    mode: mode,
+                    maxPlayers: maxPlayers
+                });
+            }
+        }
+
+        const nm = new NetworkManager();
+
+        async function test() {
+            try {
+                addLog('Подключаемся к серверу...');
+                await nm.connect('TestPlayer123');
+                addLog('✓ Подключено!');
+                
+                addLog('Слушаем GAME_STATE...');
+                nm.on('GAME_STATE', (data) => {
+                    addLog(`✓ GameState получено. Data: ${JSON.stringify(data).substring(0, 100)}...`);
+                });
+                
+                setTimeout(() => {
+                    addLog('Создаем игру в режиме COOP...');
+                    nm.createGame('coop', 4);
+                }, 1000);
+                
+            } catch (error) {
+                addLog(`✗ Ошибка: ${error}`);
+            }
+        }
+
+        addLog('Страница загружена. Нажмите консоль для деталей.');
+        setTimeout(test, 500);
+    </script>
+</body>
+</html>

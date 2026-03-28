@@ -1,0 +1,48 @@
+{
+  "name": "neon-shooter-multiplayer",
+  "version": "1.0.0",
+  "description": "Синтвейв киберпанк многопользовательский шутер top-down",
+  "author": "Neon Shooter",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "node server.js",
+    "server": "node server.js",
+    "electron": "npx electron .",
+    "pack:mac": "npx electron-builder --mac dmg",
+    "pack:dir": "npx electron-builder --mac dir"
+  },
+  "dependencies": {
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.neonshooter.game",
+    "productName": "Neon Shooter",
+    "copyright": "Copyright © Neon Shooter",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "index.html",
+      "*.html",
+      "*.js",
+      "!game_old.js",
+      "style.css",
+      "electron/**/*.cjs",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.games",
+      "target": ["dmg"],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

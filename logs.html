@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Log Viewer</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #1e1e1e; 
+            color: #0f0; 
+            padding: 10px; 
+        }
+        h1 { color: #0ff; }
+        .controls {
+            margin-bottom: 10px;
+        }
+        button { 
+            background: #0f0; 
+            color: #000; 
+            padding: 8px 12px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 3px;
+        }
+        button:hover { background: #00ff00; }
+        #logContainer { 
+            border: 2px solid #0f0; 
+            padding: 10px; 
+            height: 600px; 
+            overflow-y: auto; 
+            background: #000;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-entry { 
+            margin: 2px 0; 
+            padding: 2px 0;
+            border-bottom: 1px solid #0f0;
+        }
+        .log-error { color: #f00; }
+        .log-warn { color: #ff0; }
+        .log-log { color: #0f0; }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #0f0;
+            background: #001000;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Log Viewer</h1>
+    
+    <div class="controls">
+        <button onclick="refreshLogs()">🔄 REFRESH</button>
+        <button onclick="clearLogs()">🗑️ CLEAR</button>
+        <button onclick="downloadLogs()">💾 DOWNLOAD</button>
+        <button onclick="openGame()">🎮 OPEN GAME</button>
+    </div>
+    
+    <div id="status" class="status">
+        Загружается...
+    </div>
+    
+    <div id="logContainer">
+        (логи будут здесь)
+    </div>
+    
+    <script>
+        const DEBUG_LOG_KEY = 'GAME_DEBUG_LOGS';
+        
+        function refreshLogs() {
+            const container = document.getElementById('logContainer');
+            const status = document.getElementById('status');
+            
+            try {
+                const stored = localStorage.getItem(DEBUG_LOG_KEY);
+                if (!stored) {
+                    container.innerHTML = '<p style="color: #f00;">Нет логов. Откройте игру и воспроизведите ошибку.</p>';
+                    status.textContent = '❌ Логи не найдены. Откройте игру.';
+                    return;
+                }
+                
+                const logs = JSON.parse(stored);
+                status.textContent = `✓ Логов найдено: ${logs.length}`;
+                
+                let html = '';
+                logs.forEach(log => {
+                    let className = 'log-log';
+                    if (log.includes('[ERROR]')) className = 'log-error';
+                    else if (log.includes('[WARN]')) className = 'log-warn';
+                    
+                    html += `<div class="log-entry ${className}">${escapeHtml(log)}</div>`;
+                });
+                
+                container.innerHTML = html;
+                container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                container.innerHTML = `<p style="color: #f00;">Ошибка: ${e.message}</p>`;
+                status.textContent = '❌ Ошибка при чтении логов';
+            }
+        }
+        
+        function clearLogs() {
+            if (confirm('Вы уверены, что хотите очистить логи?')) {
+                localStorage.removeItem(DEBUG_LOG_KEY);
+                refreshLogs();
+            }
+        }
+        
+        function downloadLogs() {
+            const logs = JSON.parse(localStorage.getItem(DEBUG_LOG_KEY) || '[]');
+            const content = logs.join('\n');
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+            element.setAttribute('download', `game_logs_${new Date().getTime()}.txt`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+        
+        function openGame() {
+            window.open('index.html', 'game_window');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Обновляем логи каждую секунду
+        refreshLogs();
+        setInterval(refreshLogs, 1000);
+    </script>
+</body>
+</html>
